@@ -1,5 +1,6 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 
 let persons = [
@@ -26,8 +27,10 @@ let persons = [
 ]
 
 app.use(express.json());
-//app.use(morgan('tiny')); //logs basic request info to console
+app.use(express.static('dist'));
+app.use(cors());
 
+/*app.use(morgan('tiny')); //logs basic request info to console*/
 //creates a token ':body' to log the JSON info in a POST request
 morgan.token('body', function(req, res) {
   return JSON.stringify(req.body);
@@ -84,7 +87,7 @@ app.get('/info', (request, response) => {
     response.send(`Phonebook contains ${persons.length} entries<br/>${new Date()}`)
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
-})
+});
