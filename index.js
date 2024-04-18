@@ -3,6 +3,7 @@ const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
 
+/*
 let persons = [
     { 
       "id": 1,
@@ -25,10 +26,13 @@ let persons = [
       "number": "39-23-6423122"
     }
 ]
+*/
 
+require('dotenv').config();
 app.use(express.json());
 app.use(express.static('dist'));
 app.use(cors());
+const Person = require('./modules/person');
 
 /*app.use(morgan('tiny')); //logs basic request info to console*/
 //creates a token ':body' to log the JSON info in a POST request
@@ -43,30 +47,58 @@ app.get('/', (request, response) => {
 })
 
 app.get('/api/persons', (request, response) => {
-  response.json(persons)
+  Person.find({}).then(persons => {
+    response.json(persons);
+  })
 })
 
-app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id);
-    const person = persons.find(person => person.id === id);
+/*
+app.get('/api/persons', (request, response) => {
+  response.json(persons)
+})
+*/
 
+app.get('/api/persons/:id', (request, response) => {
+  const id = request.params.id;
+  /* would be good for validation but cannot be used without require('mongoose')
+  if(!mongoose.Types.ObjectId.isValid(id)){
+    console.log('invalid id format');
+    response.status(400).end();
+  }
+  */
+  console.log(request.params.id);
+  Person.findById(request.params.id).then(person => {
     if(person){
-        response.json(person);
+      console.log(person);
+      response.json(person);
     } else {
-        response.status(404).end();
+      console.log('no person found');
+      response.status(404).end();
     }
+  })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id)
-    persons = persons.filter(person => person.id !== id)
-  
-    response.status(204).end()
+  //Needs refactoring with mongodb
+  /*
+  const id = Number(request.params.id)
+  persons = persons.filter(person => person.id !== id)
+
+  response.status(204).end()
+  */
 })
 
 app.post('/api/persons', (request, response) => {
   console.log(JSON.stringify(request.body));
-  const person = request.body;
+
+  const person = new Person(request.body);
+  console.log(person);
+  person.save().then(result => {
+    console.log('saved');
+  })
+
+  /*
+  //const person = request.body;
   if(!(person.name && person.number)){
       return response.status(400).json({
           error: "missing name or number"
@@ -80,11 +112,15 @@ app.post('/api/persons', (request, response) => {
 
   person.id = Math.floor(Math.random() * 1000000);
   persons = persons.concat(person);
+  */
   response.json(person);
 })
 
 app.get('/info', (request, response) => {
-    response.send(`Phonebook contains ${persons.length} entries<br/>${new Date()}`)
+  //Needs refactoring with mongodb
+  /*
+  response.send(`Phonebook contains ${persons.length} entries<br/>${new Date()}`)
+  */
 })
 
 const PORT = process.env.PORT || 3001;
