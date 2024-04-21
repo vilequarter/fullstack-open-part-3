@@ -52,78 +52,74 @@ app.get('/api/persons', (request, response) => {
   })
 })
 
-/*
-app.get('/api/persons', (request, response) => {
-  response.json(persons)
-})
-*/
-
-app.get('/api/persons/:id', (request, response) => {
+app.get('/api/persons/:id', (request, response, next) => {
   const id = request.params.id;
-  /* would be good for validation but cannot be used without require('mongoose')
-  if(!mongoose.Types.ObjectId.isValid(id)){
-    console.log('invalid id format');
-    response.status(400).end();
-  }
-  */
-  console.log(request.params.id);
   Person.findById(request.params.id).then(person => {
     if(person){
-      console.log(person);
       response.json(person);
     } else {
-      console.log('no person found');
       response.status(404).end();
     }
   })
+  .catch(error => next(error));
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-  //Needs refactoring with mongodb
-  /*
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-
-  response.status(204).end()
-  */
+  Person.findByIdAndDelete(request.params.id)
+    .then(result => {
+      response.status(204).end();
+    })
+    .catch(error => next(error));
 })
 
 app.post('/api/persons', (request, response) => {
-  console.log(JSON.stringify(request.body));
-
   const person = new Person(request.body);
-  console.log(person);
   person.save().then(result => {
     console.log('saved');
   })
-
-  /*
-  //const person = request.body;
-  if(!(person.name && person.number)){
-      return response.status(400).json({
-          error: "missing name or number"
-      })
-  }
-  if(persons.find(p => p.name === person.name)){
-      return response.status(400).json({
-          error: "name already exists"
-      })
-  }
-
-  person.id = Math.floor(Math.random() * 1000000);
-  persons = persons.concat(person);
-  */
   response.json(person);
 })
 
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body;
+
+  const person = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person.findByIdAndUpdate(request.params.id, person, {new: true})
+    .then(updatedPerson => {
+      response.json(updatedPerson)
+    })
+    .catch(error => next(error))
+})
+
 app.get('/info', (request, response) => {
-  //Needs refactoring with mongodb
-  /*
-  response.send(`Phonebook contains ${persons.length} entries<br/>${new Date()}`)
-  */
+  Person.find({}).then(persons => {
+    response.send(`Phonebook contains ${persons.length} entries<br/>${new Date()}`);
+  });
 })
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 });
+
+const unknownEndpoint = (request, response) => {
+  response.status(404).send({error: 'unknown endpoint'})
+}
+
+app.use(unknownEndpoint);
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if(error.name === 'CastError') {
+    return response.status(400).send({error: 'malformed id'})
+  }
+
+  next(error);
+}
+
+app.use(errorHandler);
